@@ -2,6 +2,7 @@ const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
 
 const prisma = new PrismaClient();
+const userSockets = new Map();
 
 const socketHandler = (io) => {
   io.use(async (socket, next) => {
@@ -27,8 +28,18 @@ const socketHandler = (io) => {
   });
 
   io.on("connection", (socket) => {
+    const userId = socket.user.id;
+
+    if (!userSockets.has(userId)) {
+      userSockets.set(userId, new Set());
+    }
+
+    userSockets.get(userId).add(socket.id);
+
     console.log(
-      `New Socket Connected: ${socket.id}, user: ${socket.user.username}`
+      `User ${socket.user.username} connected. Active sockets: ${Array.from(
+        userSockets.get(userId)
+      )}`
     );
 
     socket.emit("welcome", { message: "Welcome", id: socket.id });
@@ -38,8 +49,16 @@ const socketHandler = (io) => {
       socket.emit("pong", { time: Date.now(), received: payload });
     });
 
-    socket.on("disconnect", (reason) => {
-      console.log(`Client dissconected: ${socket.id}, ${reason}`);
+    socket.on("disconnect", () => {
+      const sockets = userSockets.get(userId);
+
+      sockets?.delete(socket.id);
+
+      if (sockets?.size === 0) {
+        userSockets.delete(userId);
+      }
+
+      console.log(`User ${socket.user.username} disconnected`);
     });
   });
 };
