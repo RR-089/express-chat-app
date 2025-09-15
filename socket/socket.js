@@ -49,6 +49,40 @@ const socketHandler = (io) => {
       socket.emit("pong", { time: Date.now(), received: payload });
     });
 
+    socket.on("private_message", async ({ to, content }) => {
+      try {
+        const message = await prisma.message.create({
+          data: {
+            senderId: userId,
+            receiverId: to,
+            content,
+          },
+        });
+
+        const payload = {
+          id: message.id,
+          from: message.senderId,
+          to: message.receiverId,
+          content: message.content,
+          createdAt: message.createdAt,
+        };
+
+        for (const senderSockets of userSockets.get(userId)) {
+          io.to(senderSockets).emit("private_message", payload);
+        }
+
+        const receiverSockets = userSockets.get(message.receiverId);
+        if (receiverSockets) {
+          for (const receiverSockets of userSockets.get(to)) {
+            io.to(receiverSockets).emit("private_message", payload);
+          }
+        }
+      } catch (error) {
+        console.error("Private message error:", error);
+        socket.emit("error_message", { error: "Falied to send message" });
+      }
+    });
+
     socket.on("disconnect", () => {
       const sockets = userSockets.get(userId);
 
