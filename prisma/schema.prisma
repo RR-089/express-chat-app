@@ -21,17 +21,20 @@ model User {
   updatedAt        DateTime       @updatedAt
   sentMessages     Message[]      @relation("SentMessages")
   receivedMessages Message[]      @relation("ReceivedMessages")
-  GroupMember      GroupMember[]
-  GroupMessage     GroupMessage[]
+  groupMembers     GroupMember[]
+  groupMessages    GroupMessage[]
+  createdGroups    Group[]
 }
 
 model Group {
   id        Int      @id @default(autoincrement())
   name      String
   createdAt DateTime @default(now())
+  createdBy Int
 
-  GroupMember  GroupMember[]
-  GroupMessage GroupMessage[]
+  user     User           @relation(fields: [createdBy], references: [id])
+  members  GroupMember[]
+  messages GroupMessage[]
 }
 
 model GroupMember {
