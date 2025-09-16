@@ -83,6 +83,47 @@ const socketHandler = (io) => {
       }
     });
 
+    socket.on("join_group", async ({ groupId }) => {
+      try {
+        const isMember = await prisma.groupMember.findUnique({
+          where: {
+            groupId_userId: { userId: userId, groupId },
+          },
+        });
+
+        if (!isMember) {
+          await prisma.groupMember.create({ data: { userId, groupId } });
+        }
+
+        socket.join(`group:${groupId}`);
+        socket.emit("joined_group", { groupId });
+        console.log(`${socket.user.username} joined group ${groupId}`);
+      } catch (error) {
+        console.error("Join group error:", error);
+        socket.emit("error_message", { error: "Failed to join group" });
+      }
+    });
+
+    socket.on("group_message", async ({ groupId, content }) => {
+      const message = await prisma.groupMessage.create({
+        data: {
+          groupId,
+          content,
+          senderId: userId,
+        },
+      });
+
+      const payload = {
+        id: message.id,
+        groupId: message.groupId,
+        from: message.senderId,
+        content: message.content,
+        createdAt: message.createdAt,
+      };
+
+      io.to(`group:${groupId}`).emit("group_message", payload);
+    });
+
     socket.on("disconnect", () => {
       const sockets = userSockets.get(userId);
 
