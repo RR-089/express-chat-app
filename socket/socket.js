@@ -35,12 +35,14 @@ const socketHandler = (io) => {
     }
     userSockets.get(userId).add(socket.id);
 
-    const groups = await prisma.groupMember.findMany({
-      where: { userId: userId },
-    });
-
-    for (const group of groups) {
-      socket.join(`group:${group.groupId}`);
+    try {
+      const groups = await prisma.groupMember.findMany({ where: { userId } });
+      for (const group of groups) {
+        socket.join(`group:${group.groupId}`);
+      }
+      console.log(`User ${userId} joined ${groups.length} group rooms`);
+    } catch (err) {
+      console.error(`Failed to fetch groups for user ${userId}:`, err);
     }
 
     console.log(
