@@ -27,14 +27,21 @@ const socketHandler = (io) => {
     }
   });
 
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const userId = socket.user.id;
 
     if (!userSockets.has(userId)) {
       userSockets.set(userId, new Set());
     }
-
     userSockets.get(userId).add(socket.id);
+
+    const groups = await prisma.groupMember.findMany({
+      where: { userId: userId },
+    });
+
+    for (const group of groups) {
+      socket.join(`group:${group.groupId}`);
+    }
 
     console.log(
       `User ${socket.user.username} connected. Active sockets: ${Array.from(
@@ -68,6 +75,7 @@ const socketHandler = (io) => {
         };
 
         for (const senderSockets of userSockets.get(userId)) {
+          if (senderSockets === socket.id) continue;
           io.to(senderSockets).emit("private_message", payload);
         }
 
