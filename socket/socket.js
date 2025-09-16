@@ -1,7 +1,7 @@
-const { PrismaClient } = require("@prisma/client");
 const jwt = require("jsonwebtoken");
 
-const prisma = new PrismaClient();
+const prisma = require("./../prisma/prisma");
+
 const userSockets = new Map();
 
 const socketHandler = (io) => {
