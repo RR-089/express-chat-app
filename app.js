@@ -1,6 +1,7 @@
 const express = require("express");
 const authRoutes = require("./routes/authRoute");
 const messageRoutes = require("./routes/messageRoute");
+const groupRoutes = require("./routes/groupRoute");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
@@ -8,6 +9,7 @@ const app = express();
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/messages", authMiddleware, messageRoutes);
+app.use("/api/groups", authMiddleware, groupRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "Hello World" });
